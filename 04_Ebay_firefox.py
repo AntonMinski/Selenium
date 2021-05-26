@@ -8,7 +8,7 @@ user_agent = 'Mozilla/5.0 (Linux; Android 5.1; Tesla Build/LMY47D) AppleWebKit/5
 url = 'https://www.ebay.com/b/Laptops-Netbooks/175672/bn_1648276?LH_BIN=1&LH_ItemCondition=1000%7C1500%7C2000%7C2500%7C3000%7C10&rt=nc&_dcat=175672&_dmd=1&_fosrp=1&_from=R40%7CR40&_mPrRngCbx=1&_sop=10&_udhi=450'
 
 # url = 'https://www.ebay.com/sch/i.html?_fsrp=1&_sop=10&_sacat=175672&LH_BIN=1&_from=R40&LH_TitleDesc=0&LH_ItemCondition=2000%7C1500%7C2500%7C3000&_udhi=450&LH_PrefLoc=4'
-page_deep = 1
+page_deep = 2
 
 # if parsing by firefox, options:
 # driver = webdriver.Firefox()
@@ -22,6 +22,7 @@ driver = webdriver.Firefox(options=options)
 # driver = webdriver.Chrome(options=options)
 
 driver.get(url)
+driver.implicitly_wait(10)
 
 ''' # save the cookies after login by hand
 time.sleep(90)
@@ -34,6 +35,7 @@ for cookie in pickle.load(open('cookies/session', 'rb')):
     driver.add_cookie(cookie)
 print('loaded cookies')
 time.sleep(2)
+driver.implicitly_wait(10)
 
 # get to the start page
 driver.get(url)
@@ -80,13 +82,37 @@ def get_specs_main():
         except:
             print('error while getting lot details')
 
+
+# m = get_specs_main()
+
+# print('array is:', m)
+
+
+# check_other_page
+def iterate_pages(page_deep):
+    for i in range(page_deep):
+        get_specs_main()
+        time.sleep(2)
+        print(f'page #{i + 1} was done creating links')
+        if i < page_deep:
+            try:
+                next_page_sel = 'ebayui-image-chevron-light-right'
+                next_page_but = driver.find_element_by_class_name(next_page_sel)
+                next_page_but.click()
+            except:
+                print(f'no such button: next_page, {i+2}')
+            time.sleep(3)
+    print(len(item_arr))
     return item_arr
 
-m = get_specs_main()
+try:
+    list_of_el = iterate_pages(page_deep)
+    print(list_of_el)
+except:
+    print('error iterating by page')
 
-print('array is:', m)
 
-#123
+
 
 
 
