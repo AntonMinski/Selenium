@@ -22,7 +22,7 @@ driver = webdriver.Firefox(options=options)
 # driver = webdriver.Chrome(options=options)
 
 driver.get(url)
-driver.implicitly_wait(10)
+driver.implicitly_wait(5)
 
 ''' # save the cookies after login by hand
 time.sleep(90)
@@ -34,8 +34,7 @@ driver.close()
 for cookie in pickle.load(open('cookies/session', 'rb')):
     driver.add_cookie(cookie)
 print('loaded cookies')
-time.sleep(2)
-driver.implicitly_wait(10)
+time.sleep(1)
 
 # get to the start page
 driver.get(url)
@@ -111,6 +110,39 @@ try:
 except:
     print('error iterating by page')
 
+
+for el in list_of_el:
+    print(el)
+    print(el[0])
+    # define the product link
+    try:
+        link = el[0]
+        driver.get(link)
+    except:
+        print('can not get prod_url')
+
+    # open description page:
+    try:
+        # show_more_btn = driver.find_element_by_class_name("app-item-description__body--readmore")
+        show_more_btn = driver.find_element_by_class_name("app-item-description__wrapper")
+        show_more_btn.click()
+    except:
+        print('cant find/click show/more')
+
+    #get description:
+    try:
+        body_id = "ds_div"
+        body = driver.find_element_by_css_selector("div[id='ds_div']")
+    except:
+        print('cant find body selector')
+        body = 'error'
+    try:
+        desc = body.text.lower()
+        el.append(desc)
+    except:
+        print('error reading description')
+
+print(list_of_el)
 
 
 
