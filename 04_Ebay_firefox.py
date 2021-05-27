@@ -1,13 +1,12 @@
 from selenium import webdriver
+import selenium.common.exceptions as sce
 import time
 from selenium.webdriver.support.select import Select
 import pickle
 
 user_agent = 'Mozilla/5.0 (Linux; Android 5.1; Tesla Build/LMY47D) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/39.0.0.0 Mobile Safari/537.36 YaApp_Android/9.20/apad YaSearchBrowser/9.20'
-# url = 'https://www.ebay.com/sch/i.html?_fsrp=1&_sop=10&_sacat=175672&LH_BIN=1&_from=R40&LH_TitleDesc=0&LH_ItemCondition=2000%7C1500%7C2500%7C3000&_udhi=450'
 url = 'https://www.ebay.com/b/Laptops-Netbooks/175672/bn_1648276?LH_BIN=1&LH_ItemCondition=1000%7C1500%7C2000%7C2500%7C3000%7C10&rt=nc&_dcat=175672&_dmd=1&_fosrp=1&_from=R40%7CR40&_mPrRngCbx=1&_sop=10&_udhi=450'
 
-# url = 'https://www.ebay.com/sch/i.html?_fsrp=1&_sop=10&_sacat=175672&LH_BIN=1&_from=R40&LH_TitleDesc=0&LH_ItemCondition=2000%7C1500%7C2500%7C3000&_udhi=450&LH_PrefLoc=4'
 page_deep = 2
 
 # if parsing by firefox, options:
@@ -22,7 +21,6 @@ driver = webdriver.Firefox(options=options)
 # driver = webdriver.Chrome(options=options)
 
 driver.get(url)
-driver.implicitly_wait(5)
 
 ''' # save the cookies after login by hand
 time.sleep(90)
@@ -39,7 +37,7 @@ time.sleep(1)
 # get to the start page
 driver.get(url)
 
-'''# select shipping destination:
+'''# select shipping destination (if no account or cookies been added):
 shipp_but = driver.find_element_by_id("shipto")
 shipp_but.click()
 time.sleep(2)
@@ -49,7 +47,7 @@ country_buttons = driver.find_element_by_xpath(xpath_us)
 country_buttons.click()
 '''
 
-# find links on the page:
+# --------------------------  find array of links, titles, prices  ----------------------------------
 item_arr = []
 
 def get_specs_main():
@@ -72,35 +70,39 @@ def get_specs_main():
             # shipp
             try:
                 shipp = driver.find_element_by_xpath(li_xpath + f'[{j}]//span[@class="s-item__shipping s-item__logisticsCost"]').text
-            except :
-                print('error getting shipping', j, link)
-                shipp = 'free'
+            except sce.NoSuchElementException as exc:
+                print(exc, link)
+                # print('error getting shipping', j, link)
+                shipp = '0'
 
             item_arr.append([link, title, price, shipp])
 
-        except:
-            print('error while getting lot details')
-
+        except sce.NoSuchElementException as exc_el:
+            print(exc_el)
+        except sce.NoSuchAttributeException as exc_attr:
+            print(exc_attr)
 
 # m = get_specs_main()
-
 # print('array is:', m)
 
 
 # check_other_page
 def iterate_pages(page_deep):
-    for i in range(page_deep):
+    i = 0
+    # for i in range(page_deep):
+    while i < page_deep:
         get_specs_main()
         time.sleep(2)
         print(f'page #{i + 1} was done creating links')
-        if i < page_deep:
-            try:
-                next_page_sel = 'ebayui-image-chevron-light-right'
-                next_page_but = driver.find_element_by_class_name(next_page_sel)
-                next_page_but.click()
-            except:
-                print(f'no such button: next_page, {i+2}')
-            time.sleep(3)
+        i = i + 1
+        try:
+            next_page_sel = 'ebayui-image-chevron-light-right'
+            next_page_but = driver.find_element_by_class_name(next_page_sel)
+            next_page_but.click()
+        except sce.NoSuchElementException as exc:
+            print(f'no such button: next_page, {i+2}')
+            print(exc)
+        time.sleep(3)
     print(len(item_arr))
     return item_arr
 
@@ -110,6 +112,9 @@ try:
 except:
     print('error iterating by page')
 
+
+
+#         -----------------        Find description           -------------------
 
 for el in list_of_el:
     print(el)
