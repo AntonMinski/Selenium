@@ -3,11 +3,13 @@ import selenium.common.exceptions as sce
 import time
 from selenium.webdriver.support.select import Select
 import pickle
+import csv
+import re
 
 user_agent = 'Mozilla/5.0 (Linux; Android 5.1; Tesla Build/LMY47D) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/39.0.0.0 Mobile Safari/537.36 YaApp_Android/9.20/apad YaSearchBrowser/9.20'
 url = 'https://www.ebay.com/b/Laptops-Netbooks/175672/bn_1648276?LH_BIN=1&LH_ItemCondition=1000%7C1500%7C2000%7C2500%7C3000%7C10&rt=nc&_dcat=175672&_dmd=1&_fosrp=1&_from=R40%7CR40&_mPrRngCbx=1&_sop=10&_udhi=450'
 
-page_deep = 2
+page_deep = 1
 
 # if parsing by firefox, options:
 # driver = webdriver.Firefox()
@@ -50,6 +52,12 @@ country_buttons.click()
 # --------------------------  find array of links, titles, prices  ----------------------------------
 item_arr = []
 
+def refine_price(price):
+    value = re.findall("\d+\.\d+", price)
+    if not value:
+        value = [0]
+    return value
+
 def get_specs_main():
     li_xpath = "//ul[@class='b-list__items_nofooter']/li"
     list_of_el = driver.find_elements_by_xpath(li_xpath)
@@ -65,11 +73,17 @@ def get_specs_main():
             title = driver.find_element_by_xpath(li_xpath + f'[{j}]//h3').text
 
             # price
-            price = driver.find_element_by_xpath(li_xpath + f'[{j}]//span[@class="s-item__price"]').text
+            try:
+                price_val = driver.find_element_by_xpath(li_xpath + f'[{j}]//span[@class="s-item__price"]').text
+                price = refine_price(price_val)[0]
+            except:
+                print(' error when trying to refine or get price')
+                price = price_val
 
             # shipp
             try:
-                shipp = driver.find_element_by_xpath(li_xpath + f'[{j}]//span[@class="s-item__shipping s-item__logisticsCost"]').text
+                shipp_val = driver.find_element_by_xpath(li_xpath + f'[{j}]//span[@class="s-item__shipping s-item__logisticsCost"]').text
+                shipp = refine_price(shipp_val)[0]
             except sce.NoSuchElementException as exc:
                 print(exc, link)
                 # print('error getting shipping', j, link)
@@ -103,12 +117,12 @@ def iterate_pages(page_deep):
             print(f'no such button: next_page, {i+2}')
             print(exc)
         time.sleep(3)
-    print(len(item_arr))
+    # print(len(item_arr))
     return item_arr
 
 try:
     list_of_el = iterate_pages(page_deep)
-    print(list_of_el)
+    # print(list_of_el)
 except:
     print('error iterating by page')
 
@@ -116,15 +130,27 @@ except:
 
 #         -----------------        Find description           -------------------
 
+
+def write_csv(data):
+
+    with open('result.csv', 'a+') as file:
+        fieldnames = ['link', 'title', 'price', 'shipp', 'desc']
+        writer = csv.DictWriter(file, fieldnames=fieldnames)
+
+        writer.writerow(data)
+    # print('done csv')
+
+
+
 for el in list_of_el:
-    print(el)
-    print(el[0])
+    # print(el)
+    # print(el[0])
     # define the product link
     try:
         link = el[0]
         driver.get(link)
     except:
-        print('can not get prod_url')
+        print('can not get prod_url', el)
 
     # open description page:
     try:
@@ -132,22 +158,36 @@ for el in list_of_el:
         show_more_btn = driver.find_element_by_class_name("app-item-description__wrapper")
         show_more_btn.click()
     except:
-        print('cant find/click show/more')
+        print('cant find/click show/more', link)
 
     #get description:
     try:
         body_id = "ds_div"
         body = driver.find_element_by_css_selector("div[id='ds_div']")
     except:
-        print('cant find body selector')
+        print('cant find body selector', link)
         body = 'error'
     try:
         desc = body.text.lower()
         el.append(desc)
     except:
-        print('error reading description')
+        print('error reading description', link)
 
-print(list_of_el)
+    data = {
+        'link': el[0],
+        'title': el[1],
+        'price': el[2],
+        'shipp': el[3],
+        'desc': el[4],
+    }
+    try:
+        write_csv(data)
+    except:
+        print(f'error trying to write csv {link}')
+
+
+# print(list_of_el)
+
 
 
 
